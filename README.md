@@ -71,13 +71,15 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | Method | Path | Purpose |
 | --- | --- | --- |
 | POST | `/customers` | create customer |
-| POST | `/customers/{id}/conversations` | ingest WeChat message → parse → update lead |
-| POST | `/customers/{id}/conversations/bulk` | paste a whole chat log (`说话人：内容` lines, `我：` = outbound) |
+| POST | `/customers/{id}/conversations` | ingest WeChat message → parse → update lead (`occurred_at` 可带时区，自动归一为 naive UTC) |
+| POST | `/customers/{id}/conversations/bulk` | paste a whole chat log (`说话人：内容` lines, `我：` = outbound, `[图片]`/`[表情]`/`[语音]` 等占位行自动过滤) |
+| GET | `/customers/{id}/conversations` | conversation history (ordered by occurred_at) |
 | GET | `/customers/{id}/profile` | budget history, needs, price sensitivity, decision speed |
 | GET | `/leads?stage=&intent=` | pipeline list |
-| POST | `/leads/{id}/transition` | move stage (409 on invalid jump) |
+| POST | `/leads/{id}/transition` | move stage (409 on invalid jump; won/lost 自动取消该线索的 pending 跟进，保留 cancelled 留痕) |
 | POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
+| GET | `/followups?status=` | ranked follow-up list (`pending`/`done`/`cancelled`/`all`) |
 | PATCH | `/followups/{id}/done` | mark follow-up done |
 | GET | `/analytics/summary` | funnel, conversion, win rate, sources |
 
@@ -90,11 +92,14 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
   funnel analytics are computed from events, not from mutable state.
 - **Offline-first**: rule-based Chinese parser works with zero API keys; LLM
   mode is a strict upgrade (rules fill whatever the LLM misses).
+- **One clock**: all timestamps are stored as naive UTC; timezone-aware
+  `occurred_at` input is normalized at the API boundary, so imported history
+  and live `utcnow()` records sort on the same timeline.
 
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 30 tests
+.venv\Scripts\python -m pytest -q     # 65 tests
 ```
 
 ## Roadmap
@@ -103,5 +108,5 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 - [x] Won-lead → TeacherOS handoff endpoint (`POST /leads/{id}/handoff`)
 - [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道 + **一键交接 TeacherOS**)
 - [x] Chat log bulk ingestion (`conversations/bulk`，粘贴整段微信记录)
-- [ ] WeChat export import (chat log bulk ingestion)
-- [ ] One-click handoff from the board (board button → TeacherOS API)
+- [x] WeChat export import (chat log bulk ingestion)
+- [x] One-click handoff from the board (board button → TeacherOS API)
