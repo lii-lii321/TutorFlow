@@ -1,6 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+def to_naive_utc(value: datetime | None) -> datetime | None:
+    if value is None or value.tzinfo is None:
+        return value
+    return value.astimezone(timezone.utc).replace(tzinfo=None)
 
 
 class CustomerCreate(BaseModel):
@@ -53,10 +59,20 @@ class ConversationIn(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
     occurred_at: datetime | None = None
 
+    @field_validator("occurred_at", mode="after")
+    @classmethod
+    def _normalize_occurred_at(cls, value):
+        return to_naive_utc(value)
+
 
 class ChatLogIn(BaseModel):
     text: str = Field(min_length=1, max_length=20000)
     occurred_at: datetime | None = None
+
+    @field_validator("occurred_at", mode="after")
+    @classmethod
+    def _normalize_occurred_at(cls, value):
+        return to_naive_utc(value)
 
 
 class ConversationOut(BaseModel):

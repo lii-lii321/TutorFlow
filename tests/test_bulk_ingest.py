@@ -67,3 +67,18 @@ async def test_handoff_then_teacheros_payload_shape(client):
     assert set(payload) == {"name", "grade", "subject", "current_score", "target_score", "teacher_note"}
     assert payload["grade"] == "初二"
     assert payload["current_score"] == 80
+
+
+async def test_bulk_occurred_at_with_timezone_normalized_to_utc(client):
+    customer = await create_customer(client)
+    resp = await client.post(
+        f"/customers/{customer['id']}/conversations/bulk",
+        json={"text": BULK_LOG, "occurred_at": "2026-10-05T18:30:00+08:00"},
+    )
+    assert resp.status_code == 200
+
+    conversations = (await client.get(f"/customers/{customer['id']}/conversations")).json()
+    assert [c["occurred_at"] for c in conversations] == ["2026-10-05T10:30:00"] * 3
+
+    lead = (await client.get("/leads")).json()[0]
+    assert lead["last_contact_at"] == "2026-10-05T10:30:00"

@@ -94,3 +94,23 @@ async def test_customer_crud_and_filter(client):
 
     missing = await client.get("/customers/999")
     assert missing.status_code == 404
+
+
+async def test_occurred_at_with_timezone_normalized_to_utc(client):
+    customer = await create_customer(client)
+    resp = await client.post(
+        f"/customers/{customer['id']}/conversations",
+        json={
+            "direction": "in",
+            "content": FULL,
+            "occurred_at": "2026-10-05T18:30:00+08:00",
+        },
+    )
+    assert resp.status_code == 201
+    assert resp.json()["conversation"]["occurred_at"] == "2026-10-05T10:30:00"
+
+    conversations = (await client.get(f"/customers/{customer['id']}/conversations")).json()
+    assert conversations[0]["occurred_at"] == "2026-10-05T10:30:00"
+
+    lead = (await client.get("/leads")).json()[0]
+    assert lead["last_contact_at"] == "2026-10-05T10:30:00"
