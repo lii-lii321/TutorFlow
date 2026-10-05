@@ -11,6 +11,7 @@ from app.utils.clock import utcnow
 OUT_SPEAKERS = ("我", "me")
 TIMESTAMP_PREFIX = re.compile(r"^\s*\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(:\d{2})?\s*")
 SPEAKER_LINE = re.compile(r"^([^：:]{1,12})[：:]\s*(.+)$")
+MEDIA_PLACEHOLDER = re.compile(r"^\[[^\[\]]{1,10}\]$")
 
 
 def parse_chat_log(text: str) -> list[dict]:
@@ -23,13 +24,15 @@ def parse_chat_log(text: str) -> list[dict]:
     for raw in text.splitlines():
         line = raw.strip().lstrip("-*·").strip()
         line = TIMESTAMP_PREFIX.sub("", line).strip()
-        if not line:
+        if not line or MEDIA_PLACEHOLDER.match(line):
             continue
         match = SPEAKER_LINE.match(line)
         if match is None:
             messages.append({"direction": "in", "content": line})
             continue
         speaker, content = match.group(1).strip(), match.group(2).strip()
+        if MEDIA_PLACEHOLDER.match(content):
+            continue
         if speaker in OUT_SPEAKERS or "老师" in speaker:
             messages.append({"direction": "out", "content": content})
         else:

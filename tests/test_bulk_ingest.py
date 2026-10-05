@@ -4,8 +4,11 @@ from tests.test_parser import FULL
 
 BULK_LOG = (
     "2024-10-01 10:30 王女士: " + FULL + "\n"
+    "王女士：[图片]\n"
     "我：好的，先给孩子做一次学情诊断。\n"
+    "[表情]\n"
     "王女士：计算还可以，应用题薄弱，想快点开始。\n"
+    "王女士：[语音]\n"
 )
 
 
@@ -82,3 +85,30 @@ async def test_bulk_occurred_at_with_timezone_normalized_to_utc(client):
 
     lead = (await client.get("/leads")).json()[0]
     assert lead["last_contact_at"] == "2026-10-05T10:30:00"
+
+
+async def test_bulk_placeholder_lines_skipped_keep_last_contact(client):
+    customer = await create_customer(client)
+    first = await client.post(
+        f"/customers/{customer['id']}/conversations/bulk",
+        json={"text": BULK_LOG, "occurred_at": "2026-10-01T10:00:00+08:00"},
+    )
+    assert first.status_code == 200
+    assert first.json()["ingested"] == 3
+    lead = (await client.get("/leads")).json()[0]
+    assert lead["last_contact_at"] == "2026-10-01T02:00:00"
+
+    second = await client.post(
+        f"/customers/{customer['id']}/conversations/bulk",
+        json={
+            "text": "王女士：[图片]\n我：[文件]\n我：收到，那先发课程方案。\n",
+            "occurred_at": "2026-10-05T18:30:00+08:00",
+        },
+    )
+    assert second.status_code == 200
+    assert second.json()["ingested"] == 1
+
+    conversations = (await client.get(f"/customers/{customer['id']}/conversations")).json()
+    assert len(conversations) == 4
+    lead = (await client.get("/leads")).json()[0]
+    assert lead["last_contact_at"] == "2026-10-01T02:00:00"

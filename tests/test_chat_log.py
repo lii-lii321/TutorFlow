@@ -31,3 +31,21 @@ def test_lines_without_speaker_default_inbound():
 def test_empty_lines_skipped():
     messages = parse_chat_log("你好\n\n\n老师好")
     assert len(messages) == 2
+
+
+def test_media_placeholder_lines_skipped():
+    log = (
+        "王女士：[图片]\n"
+        "[表情]\n"
+        "2024-10-01 10:30 王女士: [语音]\n"
+        "我：[文件]\n"
+        "王女士：孩子今天状态不错\n"
+    )
+    messages = parse_chat_log(log)
+    assert [m["direction"] for m in messages] == ["in"]
+    assert messages[0]["content"] == "孩子今天状态不错"
+
+
+def test_placeholder_like_text_kept():
+    messages = parse_chat_log("王女士：[图片]您看看这张卷子")
+    assert messages == [{"direction": "in", "content": "[图片]您看看这张卷子"}]
