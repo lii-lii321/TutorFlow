@@ -75,3 +75,48 @@ async def test_followup_api_listing(client, db):
     resp = await client.post("/followups/generate", params={"top_n": 3})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+async def seed_trial_lead(db):
+    now = utcnow()
+    customer = Customer(name="试听家长")
+    db.add(customer)
+    await db.flush()
+    lead = Lead(
+        customer_id=customer.id,
+        stage="trial",
+        intent="high",
+        last_contact_at=now - timedelta(days=3),
+    )
+    db.add(lead)
+    await db.commit()
+    return now, lead
+
+
+async def test_transition_to_lost_cancels_pending_followups(client, db):
+    now, lead = await seed_trial_lead(db)
+    created = await generate_daily_followups(db, now=now)
+    assert len(created) == 1
+
+    resp = await client.post(f"/leads/{lead.id}/transition", json={"to_stage": "lost", "reason": "预算不合"})
+    assert resp.status_code == 200
+
+    assert (await client.get("/followups")).json() == []
+    cancelled = (await client.get("/followups", params={"status": "cancelled"})).json()
+    assert [f["lead_id"] for f in cancelled] == [lead.id]
+    assert cancelled[0]["suggested_action"] == "试听后48小时内跟进反馈"
+    assert cancelled[0]["done_at"] is not None
+
+
+async def test_backflow_from_lost_regenerates_followups(client, db):
+    now, lead = await seed_trial_lead(db)
+    await generate_daily_followups(db, now=now)
+    resp = await client.post(f"/leads/{lead.id}/transition", json={"to_stage": "lost", "reason": "预算不合"})
+    assert resp.status_code == 200
+
+    resp = await client.post(f"/leads/{lead.id}/transition", json={"to_stage": "contacted", "reason": "客户回流"})
+    assert resp.status_code == 200
+
+    regenerated = await generate_daily_followups(db, now=now)
+    assert [f.lead_id for f in regenerated] == [lead.id]
+    assert regenerated[0].suggested_action == "发送课程方案与价格说明"

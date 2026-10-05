@@ -1,14 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Lead, LeadEvent
+from app.models import FollowUp, Lead, LeadEvent
 from app.schemas.leads import LeadDetailOut, LeadOut, LeadUpdate, TransitionIn
 from app.services import state_machine
 from app.services import handoff as handoff_service
+from app.utils.clock import utcnow
 
 router = APIRouter(prefix="/leads", tags=["leads"])
+
+CLOSING_STAGES = {"won", "lost"}
 
 
 async def get_lead_or_404(db: AsyncSession, lead_id: int) -> Lead:
@@ -58,6 +61,12 @@ async def transition_lead(lead_id: int, payload: TransitionIn, db: AsyncSession 
         event = state_machine.build_transition_event(lead, payload.to_stage, reason=payload.reason)
     except state_machine.InvalidTransition as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if payload.to_stage in CLOSING_STAGES:
+        await db.execute(
+            update(FollowUp)
+            .where(FollowUp.lead_id == lead.id, FollowUp.status == "pending")
+            .values(status="cancelled", done_at=utcnow())
+        )
     db.add(event)
     await db.commit()
     await db.refresh(lead)

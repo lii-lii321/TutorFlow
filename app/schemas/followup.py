@@ -14,3 +14,4 @@ class FollowUpOut(BaseModel):
     score: float
     status: str
     created_at: datetime
+    done_at: datetime | None = None
