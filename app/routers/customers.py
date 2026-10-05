@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models import Conversation, Customer, CustomerStudent, Lead
 from app.schemas.customers import (
+    ChatLogIn,
     ConversationIn,
     ConversationOut,
     CustomerCreate,
@@ -100,6 +101,30 @@ async def add_conversation(customer_id: int, payload: ConversationIn, db: AsyncS
             "parser": result["extraction"].parser,
         },
         "auto_events": result["auto_events"],
+    }
+
+
+@router.post("/{customer_id}/conversations/bulk")
+async def bulk_ingest_chat_log(customer_id: int, payload: ChatLogIn, db: AsyncSession = Depends(get_db)):
+    customer = await get_customer_or_404(db, customer_id)
+    messages = ingest.parse_chat_log(payload.text)
+    if not messages:
+        raise HTTPException(status_code=422, detail="no messages parsed from text")
+    happened_at = payload.occurred_at
+    ingested = 0
+    lead_stage = None
+    auto_events_total = 0
+    for message in messages:
+        result = await ingest.ingest_conversation(
+            db, customer, message["content"], direction=message["direction"], occurred_at=happened_at
+        )
+        ingested += 1
+        lead_stage = result["lead"].stage
+        auto_events_total += len(result["auto_events"])
+    return {
+        "ingested": ingested,
+        "lead_stage": lead_stage,
+        "auto_events_total": auto_events_total,
     }
 
 

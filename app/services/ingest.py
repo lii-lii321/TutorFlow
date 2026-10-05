@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -5,6 +7,34 @@ from app.models import Conversation, Customer, CustomerStudent, Lead
 from app.services import state_machine
 from app.services.parser import parse_message_smart
 from app.utils.clock import utcnow
+
+OUT_SPEAKERS = ("我", "me")
+TIMESTAMP_PREFIX = re.compile(r"^\s*\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2}(:\d{2})?\s*")
+SPEAKER_LINE = re.compile(r"^([^：:]{1,12})[：:]\s*(.+)$")
+
+
+def parse_chat_log(text: str) -> list[dict]:
+    """Split a pasted WeChat chat log into messages.
+
+    Lines are expected as "说话人：内容" (timestamps optional). Lines starting
+    with 我/老师 are outbound; everything else is an inbound parent message.
+    """
+    messages: list[dict] = []
+    for raw in text.splitlines():
+        line = raw.strip().lstrip("-*·").strip()
+        line = TIMESTAMP_PREFIX.sub("", line).strip()
+        if not line:
+            continue
+        match = SPEAKER_LINE.match(line)
+        if match is None:
+            messages.append({"direction": "in", "content": line})
+            continue
+        speaker, content = match.group(1).strip(), match.group(2).strip()
+        if speaker in OUT_SPEAKERS or "老师" in speaker:
+            messages.append({"direction": "out", "content": content})
+        else:
+            messages.append({"direction": "in", "content": content})
+    return messages
 
 NEXT_ACTION_BY_STAGE = {
     "new": "首次联系，了解具体需求",

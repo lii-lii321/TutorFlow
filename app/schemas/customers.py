@@ -54,6 +54,11 @@ class ConversationIn(BaseModel):
     occurred_at: datetime | None = None
 
 
+class ChatLogIn(BaseModel):
+    text: str = Field(min_length=1, max_length=20000)
+    occurred_at: datetime | None = None
+
+
 class ConversationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

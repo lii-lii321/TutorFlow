@@ -72,6 +72,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | --- | --- | --- |
 | POST | `/customers` | create customer |
 | POST | `/customers/{id}/conversations` | ingest WeChat message → parse → update lead |
+| POST | `/customers/{id}/conversations/bulk` | paste a whole chat log (`说话人：内容` lines, `我：` = outbound) |
 | GET | `/customers/{id}/profile` | budget history, needs, price sensitivity, decision speed |
 | GET | `/leads?stage=&intent=` | pipeline list |
 | POST | `/leads/{id}/transition` | move stage (409 on invalid jump) |
@@ -100,6 +101,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 
 - [x] Parser, state machine, follow-up engine, funnel analytics
 - [x] Won-lead → TeacherOS handoff endpoint (`POST /leads/{id}/handoff`)
-- [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道)
+- [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道 + **一键交接 TeacherOS**)
+- [x] Chat log bulk ingestion (`conversations/bulk`，粘贴整段微信记录)
 - [ ] WeChat export import (chat log bulk ingestion)
 - [ ] One-click handoff from the board (board button → TeacherOS API)

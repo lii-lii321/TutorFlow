@@ -118,6 +118,34 @@ def mark_done(followup_id: int):
         return None
 
 
+def handoff_to_teacheros(lead_id: int):
+    """Fetch the TeacherOS payload from TutorFlow, then create the student in TeacherOS."""
+    try:
+        resp = httpx.post(
+            f"http://127.0.0.1:8002/leads/{lead_id}/handoff",
+            timeout=30.0,
+            follow_redirects=False,
+        )
+        resp.raise_for_status()
+        payload = resp.json()["teacheros_student"]
+    except Exception as exc:
+        _error("生成交接档案", exc)
+        return None
+    try:
+        created = httpx.post(
+            "http://127.0.0.1:8000/students",
+            json=payload,
+            timeout=30.0,
+            follow_redirects=False,
+        )
+        created.raise_for_status()
+        return created.json()
+    except Exception as exc:
+        st.warning(f"TeacherOS 建档失败（确认 8000 端口已启动），档案已生成可手动创建：{payload}")
+        _error("TeacherOS 建档", exc)
+        return None
+
+
 def pipeline_metrics(summary):
     if not summary:
         return
@@ -181,3 +209,16 @@ elif page == "线索管道":
         )
     else:
         st.info("暂无线索，先在 API 里录入一条微信咨询（POST /customers/{id}/conversations）。")
+
+    won_leads = [lead for lead in leads if lead["stage"] == "won"] if leads else []
+    if won_leads:
+        st.subheader("待交接（已成交）")
+        for lead in won_leads:
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(f"线索 #{lead['id']} — 意向 {lead['intent']}，预算 {lead['budget']}")
+            with col2:
+                if st.button("交接至 TeacherOS", key=f"handoff_{lead['id']}"):
+                    created = handoff_to_teacheros(lead["id"])
+                    if created:
+                        st.success(f"已在 TeacherOS 建档：{created['name']}（学生 ID {created['id']}）")
