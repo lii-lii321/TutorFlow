@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Lead, LeadEvent
 from app.schemas.leads import LeadDetailOut, LeadOut, LeadUpdate, TransitionIn
 from app.services import state_machine
+from app.services import handoff as handoff_service
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 
@@ -61,3 +62,16 @@ async def transition_lead(lead_id: int, payload: TransitionIn, db: AsyncSession 
     await db.commit()
     await db.refresh(lead)
     return lead
+
+
+@router.post("/{lead_id}/handoff")
+async def handoff_to_teacheros(lead_id: int, db: AsyncSession = Depends(get_db)):
+    lead = await get_lead_or_404(db, lead_id)
+    try:
+        payload = await handoff_service.handoff_lead(db, lead)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {
+        "teacheros_student": payload,
+        "message": "已生成 TeacherOS 学员档案，POST 该 payload 到 TeacherOS /students 即完成交接",
+    }

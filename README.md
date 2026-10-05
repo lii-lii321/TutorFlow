@@ -75,6 +75,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | GET | `/customers/{id}/profile` | budget history, needs, price sensitivity, decision speed |
 | GET | `/leads?stage=&intent=` | pipeline list |
 | POST | `/leads/{id}/transition` | move stage (409 on invalid jump) |
+| POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
 | PATCH | `/followups/{id}/done` | mark follow-up done |
 | GET | `/analytics/summary` | funnel, conversion, win rate, sources |
@@ -98,6 +99,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Roadmap
 
 - [x] Parser, state machine, follow-up engine, funnel analytics
-- [ ] Streamlit follow-up board (今日待跟进 kanban)
+- [x] Won-lead → TeacherOS handoff endpoint (`POST /leads/{id}/handoff`)
+- [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道)
 - [ ] WeChat export import (chat log bulk ingestion)
-- [ ] Renewal tracking + TeacherOS handoff (won lead → student record)
+- [ ] One-click handoff from the board (board button → TeacherOS API)
