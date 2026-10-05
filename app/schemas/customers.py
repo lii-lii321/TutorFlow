@@ -17,7 +17,7 @@ class CustomerCreate(BaseModel):
 
 
 class CustomerUpdate(BaseModel):
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=64)
     phone: str | None = None
     source: str | None = None
     note: str | None = None

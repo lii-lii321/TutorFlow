@@ -114,3 +114,18 @@ async def test_occurred_at_with_timezone_normalized_to_utc(client):
 
     lead = (await client.get("/leads")).json()[0]
     assert lead["last_contact_at"] == "2026-10-05T10:30:00"
+
+
+async def test_update_customer_rejects_empty_name(client):
+    customer = await create_customer(client)
+
+    bad = await client.patch(f"/customers/{customer['id']}", json={"name": ""})
+    assert bad.status_code == 422
+
+    ok = await client.patch(
+        f"/customers/{customer['id']}",
+        json={"name": "赵女士", "phone": "13900000000"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["name"] == "赵女士"
+    assert ok.json()["phone"] == "13900000000"
