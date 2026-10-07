@@ -11,16 +11,16 @@ def to_naive_utc(value: datetime | None) -> datetime | None:
 
 class CustomerCreate(BaseModel):
     name: str = Field(min_length=1, max_length=64)
-    phone: str = ""
-    source: str = "unknown"
-    note: str = ""
+    phone: str = Field(default="", max_length=32)
+    source: str = Field(default="unknown", max_length=32)
+    note: str = Field(default="", max_length=512)
 
 
 class CustomerUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=64)
-    phone: str | None = None
-    source: str | None = None
-    note: str | None = None
+    phone: str | None = Field(default=None, max_length=32)
+    source: str | None = Field(default=None, max_length=32)
+    note: str | None = Field(default=None, max_length=512)
 
 
 class CustomerOut(BaseModel):
@@ -35,9 +35,9 @@ class CustomerOut(BaseModel):
 
 
 class CustomerStudentCreate(BaseModel):
-    name: str = ""
-    grade: str = ""
-    subject: str = ""
+    name: str = Field(default="", max_length=64)
+    grade: str = Field(default="", max_length=32)
+    subject: str = Field(default="", max_length=32)
     current_score: int | None = None
     target_score: int | None = None
 

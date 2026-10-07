@@ -19,14 +19,14 @@ class LeadOut(BaseModel):
 
 class LeadUpdate(BaseModel):
     intent: str | None = Field(default=None, pattern="^(high|mid|low)$")
-    next_action: str | None = None
+    next_action: str | None = Field(default=None, max_length=256)
     budget: float | None = Field(default=None, gt=0)
-    closed_reason: str | None = None
+    closed_reason: str | None = Field(default=None, max_length=256)
 
 
 class TransitionIn(BaseModel):
     to_stage: str = Field(pattern="^(new|contacted|qualified|trial|won|lost)$")
-    reason: str = ""
+    reason: str = Field(default="", max_length=256)
 
 
 class LeadEventOut(BaseModel):
