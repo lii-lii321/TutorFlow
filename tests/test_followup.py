@@ -120,3 +120,31 @@ async def test_backflow_from_lost_regenerates_followups(client, db):
     regenerated = await generate_daily_followups(db, now=now)
     assert [f.lead_id for f in regenerated] == [lead.id]
     assert regenerated[0].suggested_action == "发送课程方案与价格说明"
+
+
+async def test_followup_responses_include_customer_identity(client, db):
+    now, *_ = await seed_leads(db)
+
+    generated = (await client.post("/followups/generate", params={"top_n": 5})).json()
+    assert [item["customer_name"] for item in generated] == ["试听家长", "新家长"]
+    assert [item["lead_stage"] for item in generated] == ["trial", "new"]
+
+    listed = (await client.get("/followups")).json()
+    assert listed[0]["customer_name"] == "试听家长"
+    assert listed[0]["lead_stage"] == "trial"
+
+    done = (await client.patch(f"/followups/{generated[0]['id']}/done")).json()
+    assert done["customer_name"] == "试听家长"
+    assert done["status"] == "done"
+
+
+async def test_cancelled_followups_keep_customer_identity(client, db):
+    now, lead = await seed_trial_lead(db)
+    await generate_daily_followups(db, now=now)
+
+    resp = await client.post(f"/leads/{lead.id}/transition", json={"to_stage": "lost", "reason": "预算不合"})
+    assert resp.status_code == 200
+
+    cancelled = (await client.get("/followups", params={"status": "cancelled"})).json()
+    assert cancelled[0]["customer_name"] == "试听家长"
+    assert cancelled[0]["lead_stage"] == "lost"

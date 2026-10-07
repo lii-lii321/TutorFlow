@@ -79,7 +79,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | POST | `/leads/{id}/transition` | move stage (409 on invalid jump; won/lost 自动取消该线索的 pending 跟进，保留 cancelled 留痕) |
 | POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
-| GET | `/followups?status=` | ranked follow-up list (`pending`/`done`/`cancelled`/`all`) |
+| GET | `/followups?status=` | ranked follow-up list (`pending`/`done`/`cancelled`/`all`，含 `customer_name`/`lead_stage` 客户身份) |
 | PATCH | `/followups/{id}/done` | mark follow-up done |
 | GET | `/analytics/summary` | funnel, conversion, win rate, sources |
 
@@ -99,7 +99,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 65 tests
+.venv\Scripts\python -m pytest -q     # 67 tests
 ```
 
 ## Roadmap

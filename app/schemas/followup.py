@@ -15,3 +15,5 @@ class FollowUpOut(BaseModel):
     status: str
     created_at: datetime
     done_at: datetime | None = None
+    customer_name: str | None = None
+    lead_stage: str | None = None

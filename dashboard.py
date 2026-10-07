@@ -181,7 +181,10 @@ if page == "今日待跟进":
         with st.container(border=True):
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.markdown(f"**跟进 #{item['id']}** — {item['reason']}")
+                customer = item.get("customer_name") or "未知客户"
+                stage_label = STAGE_LABELS.get(item.get("lead_stage") or "", "")
+                title = f"{customer} · {stage_label}" if stage_label else customer
+                st.markdown(f"**{title}** — {item['reason']}（跟进 #{item['id']}）")
                 st.caption(f"建议动作：{item['suggested_action']}")
             with col2:
                 st.metric("优先分", f"{item['score']:.2f}")
