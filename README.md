@@ -100,7 +100,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 81 tests
+.venv\Scripts\python -m pytest -q     # 84 tests
 ```
 
 ## Roadmap

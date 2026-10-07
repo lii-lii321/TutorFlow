@@ -33,7 +33,7 @@ def parse_chat_log(text: str) -> list[dict]:
         speaker, content = match.group(1).strip(), match.group(2).strip()
         if MEDIA_PLACEHOLDER.match(content):
             continue
-        if speaker in OUT_SPEAKERS or "老师" in speaker:
+        if speaker.lower() in OUT_SPEAKERS or "老师" in speaker:
             messages.append({"direction": "out", "content": content})
         else:
             messages.append({"direction": "in", "content": content})

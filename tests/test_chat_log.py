@@ -49,3 +49,19 @@ def test_media_placeholder_lines_skipped():
 def test_placeholder_like_text_kept():
     messages = parse_chat_log("王女士：[图片]您看看这张卷子")
     assert messages == [{"direction": "in", "content": "[图片]您看看这张卷子"}]
+
+
+def test_teacher_speaker_is_outbound():
+    messages = parse_chat_log("李老师：今晚给孩子发了练习题\n王女士：收到，谢谢老师")
+    assert [m["direction"] for m in messages] == ["out", "in"]
+    assert messages[0]["content"] == "今晚给孩子发了练习题"
+
+
+def test_english_me_speaker_is_outbound():
+    messages = parse_chat_log("me: okay, will send the plan tonight")
+    assert messages == [{"direction": "out", "content": "okay, will send the plan tonight"}]
+
+
+def test_mixed_case_me_speaker_is_outbound():
+    messages = parse_chat_log("Me: okay\nME: done")
+    assert [m["direction"] for m in messages] == ["out", "out"]
