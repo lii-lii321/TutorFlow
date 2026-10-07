@@ -1,3 +1,6 @@
+from main import app
+
+
 async def test_healthz(client):
     resp = await client.get("/healthz")
     assert resp.status_code == 200
@@ -7,7 +10,9 @@ async def test_healthz(client):
 async def test_root(client):
     resp = await client.get("/")
     assert resp.status_code == 200
-    assert resp.json()["app"] == "TutorFlow"
+    body = resp.json()
+    assert body["app"] == "TutorFlow"
+    assert body["version"] == app.version
 
 
 async def test_lead_transition_endpoint(client):

@@ -36,4 +36,4 @@ async def healthz():
 
 @app.get("/")
 async def root():
-    return {"app": settings.app_name, "version": "0.1.0", "docs": "/docs"}
+    return {"app": settings.app_name, "version": app.version, "docs": "/docs"}
