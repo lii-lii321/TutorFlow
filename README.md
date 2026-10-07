@@ -67,6 +67,20 @@ Optional LLM extraction (any OpenAI-compatible endpoint):
 copy .env.example .env   # set TUTORFLOW_LLM_* values
 ```
 
+## Follow-up board (Streamlit)
+
+```bash
+.venv\Scripts\pip install -r requirements-dashboard.txt
+
+# 终端 1：API（看板读取 8002 端口）
+.venv\Scripts\uvicorn main:app --port 8002
+
+# 终端 2：看板
+.venv\Scripts\streamlit run dashboard.py
+```
+
+今日待跟进（生成/标记完成）+ 线索管道（漏斗指标、看板推进线索、一键交接 TeacherOS——交接需 TeacherOS 运行在 8000 端口）。
+
 ## API overview
 
 | Method | Path | Purpose |
