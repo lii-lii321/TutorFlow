@@ -22,6 +22,14 @@ STAGE_LABELS = {
     "won": "已成交",
     "lost": "已流失",
 }
+TRANSITIONS = {
+    "new": ["contacted", "qualified", "lost"],
+    "contacted": ["qualified", "trial", "new", "lost"],
+    "qualified": ["trial", "contacted", "lost"],
+    "trial": ["won", "lost", "qualified"],
+    "won": [],
+    "lost": ["contacted"],
+}
 
 st.markdown(
     f"""
@@ -115,6 +123,21 @@ def mark_done(followup_id: int):
         return resp.json()
     except Exception as exc:
         _error("标记完成", exc)
+        return None
+
+
+def transition_lead(lead_id: int, to_stage: str, reason: str):
+    try:
+        resp = httpx.post(
+            f"http://127.0.0.1:8002/leads/{lead_id}/transition",
+            json={"to_stage": to_stage, "reason": reason},
+            timeout=TIMEOUT,
+            follow_redirects=False,
+        )
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:
+        _error("推进线索", exc)
         return None
 
 
@@ -225,6 +248,25 @@ elif page == "线索管道":
         )
     else:
         st.info("暂无线索，先在 API 里录入一条微信咨询（POST /customers/{id}/conversations）。")
+
+    if leads:
+        st.subheader("推进线索")
+        options = {
+            f"#{lead['id']} {lead.get('customer_name') or '未知客户'}（{STAGE_LABELS.get(lead['stage'], lead['stage'])}）": lead
+            for lead in leads
+        }
+        choice = st.selectbox("选择线索", list(options.keys()), label_visibility="collapsed")
+        selected = options[choice]
+        targets = TRANSITIONS.get(selected["stage"], [])
+        if targets:
+            to_stage = st.selectbox("目标阶段", targets, format_func=lambda s: STAGE_LABELS.get(s, s))
+            reason = st.text_input("备注（可选）", value="看板推进", key="transition_reason")
+            if st.button("确认推进", type="primary"):
+                if transition_lead(selected["id"], to_stage, reason) is not None:
+                    st.success(f"已推进为「{STAGE_LABELS.get(to_stage, to_stage)}」")
+                    st.rerun()
+        else:
+            st.caption("该线索已成交完结，无可用跳转。")
 
     won_leads = [lead for lead in leads if lead["stage"] == "won"] if leads else []
     if won_leads:

@@ -106,7 +106,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 
 - [x] Parser, state machine, follow-up engine, funnel analytics
 - [x] Won-lead → TeacherOS handoff endpoint (`POST /leads/{id}/handoff`)
-- [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道 + **一键交接 TeacherOS**)
+- [x] Streamlit follow-up board (`dashboard.py`：今日待跟进 + 线索管道（**看板推进线索** + 一键交接 TeacherOS）)
 - [x] Chat log bulk ingestion (`conversations/bulk`，粘贴整段微信记录)
 - [x] WeChat export import (chat log bulk ingestion)
 - [x] One-click handoff from the board (board button → TeacherOS API)
