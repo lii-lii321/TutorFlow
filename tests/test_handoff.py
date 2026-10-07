@@ -56,3 +56,28 @@ async def test_handoff_rejects_non_won_lead(client):
 async def test_handoff_missing_lead_404(client):
     resp = await client.post("/leads/999/handoff")
     assert resp.status_code == 404
+
+
+async def test_handoff_named_student_and_unconfirmed_budget(client):
+    customer = (await client.post("/customers", json={"name": "赵先生", "source": "家长群"})).json()
+    await client.post(
+        f"/customers/{customer['id']}/students",
+        json={"name": "赵小宝", "grade": "初一", "subject": "英语"},
+    )
+    await client.post(
+        f"/customers/{customer['id']}/conversations",
+        json={"direction": "in", "content": "孩子初一，想学英语。"},
+    )
+    lead = (await client.get("/leads")).json()[0]
+    for stage in ("qualified", "trial", "won"):
+        resp = await client.post(f"/leads/{lead['id']}/transition", json={"to_stage": stage, "reason": "test"})
+        assert resp.status_code == 200
+
+    payload = (await client.post(f"/leads/{lead['id']}/handoff")).json()["teacheros_student"]
+    assert payload["name"] == "赵小宝"
+    assert payload["grade"] == "初一"
+    assert payload["subject"] == "英语"
+    assert payload["current_score"] is None
+    assert payload["target_score"] is None
+    assert "家长群" in payload["teacher_note"]
+    assert "未确认" in payload["teacher_note"]
