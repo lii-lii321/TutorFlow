@@ -73,6 +73,8 @@ async def mark_done(followup_id: int, db: AsyncSession = Depends(get_db)):
     followup = await db.get(FollowUp, followup_id)
     if followup is None:
         raise HTTPException(status_code=404, detail="followup not found")
+    if followup.status != "pending":
+        raise HTTPException(status_code=409, detail="only pending followups can be marked done")
     followup.status = "done"
     followup.done_at = utcnow()
     await db.commit()

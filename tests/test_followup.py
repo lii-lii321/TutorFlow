@@ -148,3 +148,39 @@ async def test_cancelled_followups_keep_customer_identity(client, db):
     cancelled = (await client.get("/followups", params={"status": "cancelled"})).json()
     assert cancelled[0]["customer_name"] == "试听家长"
     assert cancelled[0]["lead_stage"] == "lost"
+
+
+async def test_done_rejected_for_cancelled_followup(client, db):
+    now, lead = await seed_trial_lead(db)
+    created = await generate_daily_followups(db, now=now)
+    assert len(created) == 1
+
+    resp = await client.post(f"/leads/{lead.id}/transition", json={"to_stage": "lost", "reason": "预算不合"})
+    assert resp.status_code == 200
+
+    resp = await client.patch(f"/followups/{created[0].id}/done")
+    assert resp.status_code == 409
+    assert "only pending" in resp.json()["detail"]
+
+    cancelled = (await client.get("/followups", params={"status": "cancelled"})).json()
+    assert len(cancelled) == 1
+    assert cancelled[0]["status"] == "cancelled"
+    assert cancelled[0]["done_at"] is not None
+    assert (await client.get("/followups", params={"status": "done"})).json() == []
+
+
+async def test_done_rejected_twice_keeps_original_done_at(client, db):
+    now, lead = await seed_trial_lead(db)
+    created = await generate_daily_followups(db, now=now)
+    followup_id = created[0].id
+
+    first = await client.patch(f"/followups/{followup_id}/done")
+    assert first.status_code == 200
+    done_at = first.json()["done_at"]
+
+    again = await client.patch(f"/followups/{followup_id}/done")
+    assert again.status_code == 409
+
+    done = (await client.get("/followups", params={"status": "done"})).json()
+    assert len(done) == 1
+    assert done[0]["done_at"] == done_at

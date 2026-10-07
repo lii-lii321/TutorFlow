@@ -80,7 +80,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
 | GET | `/followups?status=` | ranked follow-up list (`pending`/`done`/`cancelled`/`all`，含 `customer_name`/`lead_stage` 客户身份) |
-| PATCH | `/followups/{id}/done` | mark follow-up done |
+| PATCH | `/followups/{id}/done` | mark follow-up done (409 if already done/cancelled，cancelled 留痕不可翻转为 done) |
 | GET | `/analytics/summary` | funnel, conversion, win rate, sources |
 
 ## Design decisions
@@ -99,7 +99,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 67 tests
+.venv\Scripts\python -m pytest -q     # 69 tests
 ```
 
 ## Roadmap
