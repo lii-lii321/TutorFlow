@@ -8,6 +8,7 @@ class LeadOut(BaseModel):
 
     id: int
     customer_id: int
+    customer_name: str | None = None
     stage: str
     intent: str
     budget: float | None

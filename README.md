@@ -75,7 +75,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | POST | `/customers/{id}/conversations/bulk` | paste a whole chat log (`说话人：内容` lines, `我：` = outbound, `[图片]`/`[表情]`/`[语音]` 等占位行自动过滤) |
 | GET | `/customers/{id}/conversations` | conversation history (ordered by occurred_at) |
 | GET | `/customers/{id}/profile` | budget history, needs, price sensitivity, decision speed |
-| GET | `/leads?stage=&intent=` | pipeline list |
+| GET | `/leads?stage=&intent=` | pipeline list（含 `customer_name`） |
 | POST | `/leads/{id}/transition` | move stage (409 on invalid jump; won/lost 自动取消该线索的 pending 跟进，保留 cancelled 留痕) |
 | POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
@@ -99,7 +99,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 74 tests
+.venv\Scripts\python -m pytest -q     # 76 tests
 ```
 
 ## Roadmap

@@ -203,6 +203,7 @@ elif page == "线索管道":
         st.dataframe(
             [{
                 "ID": lead["id"],
+                "客户": lead.get("customer_name") or "未知客户",
                 "阶段": STAGE_LABELS.get(lead["stage"], lead["stage"]),
                 "意向": lead["intent"],
                 "预算": lead["budget"],
@@ -219,7 +220,7 @@ elif page == "线索管道":
         for lead in won_leads:
             col1, col2 = st.columns([3, 1])
             with col1:
-                st.write(f"线索 #{lead['id']} — 意向 {lead['intent']}，预算 {lead['budget']}")
+                st.write(f"线索 #{lead['id']} · {lead.get('customer_name') or '未知客户'} — 意向 {lead['intent']}，预算 {lead['budget']}")
             with col2:
                 if st.button("交接至 TeacherOS", key=f"handoff_{lead['id']}"):
                     created = handoff_to_teacheros(lead["id"])

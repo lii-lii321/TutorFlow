@@ -3,7 +3,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import FollowUp, Lead, LeadEvent
+from app.models import Customer, FollowUp, Lead, LeadEvent
 from app.schemas.leads import LeadDetailOut, LeadOut, LeadUpdate, TransitionIn
 from app.services import state_machine
 from app.services import handoff as handoff_service
@@ -21,6 +21,27 @@ async def get_lead_or_404(db: AsyncSession, lead_id: int) -> Lead:
     return lead
 
 
+async def customer_names_by_id(db: AsyncSession, leads: list[Lead]) -> dict[int, str]:
+    customer_ids = {lead.customer_id for lead in leads}
+    if not customer_ids:
+        return {}
+    return {
+        customer.id: customer.name
+        for customer in (
+            await db.execute(
+                select(Customer).where(Customer.id.in_(customer_ids))
+            )
+        ).scalars().all()
+    }
+
+
+async def to_lead_out(db: AsyncSession, lead: Lead) -> LeadOut:
+    names = await customer_names_by_id(db, [lead])
+    return LeadOut.model_validate(lead).model_copy(
+        update={"customer_name": names.get(lead.customer_id)}
+    )
+
+
 @router.get("", response_model=list[LeadOut])
 async def list_leads(stage: str | None = None, intent: str | None = None, db: AsyncSession = Depends(get_db)):
     query = select(Lead).order_by(Lead.id)
@@ -28,7 +49,14 @@ async def list_leads(stage: str | None = None, intent: str | None = None, db: As
         query = query.where(Lead.stage == stage)
     if intent:
         query = query.where(Lead.intent == intent)
-    return list((await db.execute(query)).scalars().all())
+    leads = list((await db.execute(query)).scalars().all())
+    names = await customer_names_by_id(db, leads)
+    return [
+        LeadOut.model_validate(lead).model_copy(
+            update={"customer_name": names.get(lead.customer_id)}
+        )
+        for lead in leads
+    ]
 
 
 @router.get("/{lead_id}", response_model=LeadDetailOut)
@@ -41,7 +69,10 @@ async def get_lead(lead_id: int, db: AsyncSession = Depends(get_db)):
             .order_by(LeadEvent.created_at)
         )
     ).all()
-    return LeadDetailOut.model_validate(lead).model_copy(update={"events": list(events)})
+    names = await customer_names_by_id(db, [lead])
+    return LeadDetailOut.model_validate(lead).model_copy(
+        update={"events": list(events), "customer_name": names.get(lead.customer_id)}
+    )
 
 
 @router.patch("/{lead_id}", response_model=LeadOut)
@@ -51,7 +82,7 @@ async def update_lead(lead_id: int, payload: LeadUpdate, db: AsyncSession = Depe
         setattr(lead, field, value)
     await db.commit()
     await db.refresh(lead)
-    return lead
+    return await to_lead_out(db, lead)
 
 
 @router.post("/{lead_id}/transition", response_model=LeadOut)
@@ -70,7 +101,7 @@ async def transition_lead(lead_id: int, payload: TransitionIn, db: AsyncSession 
     db.add(event)
     await db.commit()
     await db.refresh(lead)
-    return lead
+    return await to_lead_out(db, lead)
 
 
 @router.post("/{lead_id}/handoff")
