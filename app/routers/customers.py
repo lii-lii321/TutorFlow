@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +16,7 @@ from app.schemas.customers import (
     CustomerUpdate,
 )
 from app.services import ingest, profile as profile_service
-from app.services.state_machine import STAGES
+from app.services.state_machine import STAGES, STAGE_QUERY_PATTERN
 
 router = APIRouter(prefix="/customers", tags=["customers"])
 
@@ -46,7 +46,10 @@ async def create_customer(payload: CustomerCreate, db: AsyncSession = Depends(ge
 
 
 @router.get("", response_model=list[CustomerOut])
-async def list_customers(stage: str | None = None, db: AsyncSession = Depends(get_db)):
+async def list_customers(
+    stage: str | None = Query(default=None, pattern=STAGE_QUERY_PATTERN),
+    db: AsyncSession = Depends(get_db),
+):
     query = select(Customer).order_by(Customer.id)
     if stage:
         query = query.join(Lead, Lead.customer_id == Customer.id).where(Lead.stage == stage)

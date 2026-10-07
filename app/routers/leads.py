@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Customer, FollowUp, Lead, LeadEvent
 from app.schemas.leads import LeadDetailOut, LeadOut, LeadUpdate, TransitionIn
 from app.services import state_machine
+from app.services.state_machine import STAGE_QUERY_PATTERN
 from app.services import handoff as handoff_service
 from app.utils.clock import utcnow
 
@@ -43,7 +44,11 @@ async def to_lead_out(db: AsyncSession, lead: Lead) -> LeadOut:
 
 
 @router.get("", response_model=list[LeadOut])
-async def list_leads(stage: str | None = None, intent: str | None = None, db: AsyncSession = Depends(get_db)):
+async def list_leads(
+    stage: str | None = Query(default=None, pattern=STAGE_QUERY_PATTERN),
+    intent: str | None = Query(default=None, pattern="^(high|mid|low)$"),
+    db: AsyncSession = Depends(get_db),
+):
     query = select(Lead).order_by(Lead.id)
     if stage:
         query = query.where(Lead.stage == stage)

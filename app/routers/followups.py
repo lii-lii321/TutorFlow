@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -60,7 +60,10 @@ async def generate_followups(top_n: int = 5, db: AsyncSession = Depends(get_db))
 
 
 @router.get("", response_model=list[FollowUpOut])
-async def list_followups(status: str = "pending", db: AsyncSession = Depends(get_db)):
+async def list_followups(
+    status: str = Query(default="pending", pattern="^(pending|done|cancelled|all)$"),
+    db: AsyncSession = Depends(get_db),
+):
     query = select(FollowUp).order_by(FollowUp.score.desc())
     if status != "all":
         query = query.where(FollowUp.status == status)

@@ -3,6 +3,8 @@ from app.utils.clock import utcnow
 
 STAGES = ["new", "contacted", "qualified", "trial", "won", "lost"]
 
+STAGE_QUERY_PATTERN = "^(" + "|".join(STAGES) + ")$"
+
 STAGE_LABELS = {
     "new": "新线索",
     "contacted": "已联系",
