@@ -54,7 +54,8 @@ python -m venv .venv
 .venv\Scripts\uvicorn main:app --reload --port 8002
 ```
 
-Seed a demo funnel (5 customers across all stages + daily follow-ups):
+Seed a demo funnel (5 customers across all stages + daily follow-ups;
+可重复执行，每次自动重置为同一份演示数据):
 
 ```bash
 .venv\Scripts\python scripts\seed_demo.py
