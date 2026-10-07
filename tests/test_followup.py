@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from app.models import Customer, Lead
+from app.models import Customer, CustomerStudent, Lead
 from app.services.followup_engine import generate_daily_followups, score_lead
 from app.utils.clock import utcnow
 
@@ -184,3 +184,22 @@ async def test_done_rejected_twice_keeps_original_done_at(client, db):
     done = (await client.get("/followups", params={"status": "done"})).json()
     assert len(done) == 1
     assert done[0]["done_at"] == done_at
+
+
+async def test_message_uses_first_student_by_id(client, db):
+    now = utcnow()
+    customer = Customer(name="多孩家长")
+    db.add(customer)
+    await db.flush()
+    db.add_all([
+        CustomerStudent(customer_id=customer.id, subject="数学"),
+        CustomerStudent(customer_id=customer.id, subject="英语"),
+    ])
+    lead = Lead(customer_id=customer.id, stage="new", intent="mid", last_contact_at=now)
+    db.add(lead)
+    await db.commit()
+
+    created = await generate_daily_followups(db, now=now)
+    assert [f.lead_id for f in created] == [lead.id]
+    assert "数学辅导" in created[0].suggested_message
+    assert "英语" not in created[0].suggested_message

@@ -72,27 +72,45 @@ async def generate_daily_followups(db: AsyncSession, now=None, top_n: int = 5) -
         ).scalars().all()
     }
 
-    created = []
-    for (value, reason), lead in scored:
-        if len(created) >= top_n:
-            break
-        if lead.id in pending_ids or lead.stage in ("won", "lost"):
-            continue
-        lead_customer_id = lead.customer_id
-        customer = await db.get(Customer, lead_customer_id)
-        student = (
-            await db.execute(
-                select(CustomerStudent).where(
-                    CustomerStudent.customer_id == lead_customer_id,
-                    CustomerStudent.id.is_not(None),
+    candidates = [
+        (value_reason, lead)
+        for value_reason, lead in scored
+        if lead.id not in pending_ids and lead.stage not in ("won", "lost")
+    ][:top_n]
+
+    customers_map: dict[int, Customer] = {}
+    students_map: dict[int, CustomerStudent] = {}
+    customer_ids = {lead.customer_id for _, lead in candidates}
+    if customer_ids:
+        customers_map = {
+            customer.id: customer
+            for customer in (
+                await db.execute(
+                    select(Customer).where(Customer.id.in_(customer_ids))
                 )
+            ).scalars().all()
+        }
+        student_rows = (
+            await db.execute(
+                select(CustomerStudent)
+                .where(CustomerStudent.customer_id.in_(customer_ids))
+                .order_by(CustomerStudent.id)
             )
-        ).scalars().first()
+        ).scalars().all()
+        for student in student_rows:
+            students_map.setdefault(student.customer_id, student)
+
+    created = []
+    for (value, reason), lead in candidates:
         followup = FollowUp(
             lead_id=lead.id,
             reason=reason,
             suggested_action=SUGGESTED_ACTION.get(lead.stage, "保持联系"),
-            suggested_message=build_message(lead, customer, student),
+            suggested_message=build_message(
+                lead,
+                customers_map.get(lead.customer_id),
+                students_map.get(lead.customer_id),
+            ),
             score=value,
         )
         db.add(followup)
