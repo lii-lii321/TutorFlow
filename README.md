@@ -90,7 +90,10 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | POST | `/customers/{id}/conversations/bulk` | paste a whole chat log (`说话人：内容` lines, `我：` = outbound, `[图片]`/`[表情]`/`[语音]` 等占位行自动过滤) |
 | GET | `/customers/{id}/conversations` | conversation history (ordered by occurred_at) |
 | GET | `/customers/{id}/profile` | budget history, needs, price sensitivity, decision speed |
+| POST | `/customers/{id}/students` | add student profile (name/grade/subject/scores，交接档案命名与学科来源) |
 | GET | `/leads?stage=&intent=` | pipeline list（含 `customer_name`） |
+| GET | `/leads/{id}` | lead detail + 全量 stage 事件留痕（漏斗由事件流计算） |
+| PATCH | `/leads/{id}` | update intent / budget / next_action / closed_reason（intent 枚举、budget 正数、文本限长） |
 | POST | `/leads/{id}/transition` | move stage (409 on invalid jump; won/lost 自动取消该线索的 pending 跟进，保留 cancelled 留痕) |
 | POST | `/leads/{id}/handoff` | won lead → TeacherOS student payload (409 if not won / already handed off) |
 | POST | `/followups/generate` | build today's ranked follow-up list |
