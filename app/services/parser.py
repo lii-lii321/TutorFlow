@@ -7,7 +7,7 @@ from app.services.llm.provider import get_provider
 CORE_FIELDS = ["grade", "subject", "current_score", "target_score", "budget"]
 
 GRADE_PATTERNS = [
-    r"小[一二三四五六]年级?",
+    r"小学?[一二三四五六](?:年级)?",
     r"初[一二三]",
     r"高[一二三]",
     r"大一|大二|大三|大四",

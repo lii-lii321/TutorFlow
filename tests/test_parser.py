@@ -60,3 +60,36 @@ def test_sparse_message():
     assert ex.missing == ["grade", "subject", "current_score", "target_score", "budget"]
     assert ex.intent == "mid"
     assert ex.confidence == 0.0
+
+
+def test_grade_variants():
+    assert parse_message("孩子初三，想补数学").fields["grade"] == "初三"
+    assert parse_message("孩子小五，数学跟不上").fields["grade"] == "小五"
+    assert parse_message("孩子小学五年级，数学跟不上").fields["grade"] == "小学五年级"
+    assert parse_message("高一英语，现在90分").fields["grade"] == "高一"
+    assert parse_message("大二学生，想考研数学").fields["grade"] == "大二"
+    assert parse_message("考研数学怎么收费").fields["grade"] == "考研"
+
+
+def test_subject_variants():
+    assert parse_message("想找英语老师").fields["subject"] == "英语"
+    assert parse_message("高二物理，现在65分").fields["subject"] == "物理"
+    assert parse_message("化学实验总是丢分").fields["subject"] == "化学"
+
+
+def test_availability_multiple_keywords():
+    ex = parse_message("周末和周中晚上都可以")
+    assert ex.fields["availability"] == ["周末", "周中", "晚上"]
+
+
+def test_needs_other_labels():
+    ex = parse_message("孩子基础差有点跟不上，希望保持现状")
+    assert "基础巩固" in ex.fields["needs"]
+    assert "稳定进步" in ex.fields["needs"]
+
+
+def test_interest_need_and_high_intent():
+    ex = parse_message("想学钢琴，培养兴趣")
+    assert ex.fields["subject"] == "钢琴"
+    assert "兴趣培养" in ex.fields["needs"]
+    assert ex.intent == "high"
