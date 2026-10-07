@@ -64,3 +64,30 @@ async def test_analytics_api_endpoint(client, db):
     resp = await client.get("/analytics/summary")
     assert resp.status_code == 200
     assert resp.json()["win_rate"] == 0.5
+    assert resp.json()["conversion_rates"]["trial_to_won"] == 0.5
+
+
+async def test_conversion_rates_computed_from_events(client, db):
+    await seed_funnel(db)
+    data = await analytics.summary(db)
+
+    # early_lead was seeded directly at "contacted" without events; the funnel
+    # is computed from events, so it does not enter the denominators.
+    assert data["conversion_rates"]["contacted_to_qualified"] == 1.0
+    assert data["conversion_rates"]["qualified_to_trial"] == 1.0
+    assert data["conversion_rates"]["trial_to_won"] == 0.5
+    assert data["conversion_rates"]["contacted_to_trial"] == 0.0
+    # existing counts stay untouched
+    assert data["conversions"]["qualified_to_trial"] == 2
+
+
+async def test_conversion_rates_none_without_events(client, db):
+    customer = Customer(name="无事件家长")
+    db.add(customer)
+    await db.flush()
+    db.add(Lead(customer_id=customer.id, stage="new"))
+    await db.commit()
+
+    data = await analytics.summary(db)
+    assert set(data["conversion_rates"].values()) == {None}
+    assert set(data["conversions"].values()) == {0}

@@ -161,6 +161,18 @@ def pipeline_metrics(summary):
         if win_rate is not None and budget
         else "暂无成交数据"
     )
+    rates = summary.get("conversion_rates") or {}
+    rate_parts = [
+        f"{label} {rates[key] * 100:.0f}%"
+        for key, label in (
+            ("contacted_to_qualified", "确认需求"),
+            ("qualified_to_trial", "约试听"),
+            ("trial_to_won", "成交"),
+        )
+        if rates.get(key) is not None
+    ]
+    if rate_parts:
+        st.caption("阶段转化率 ｜ " + " ｜ ".join(rate_parts))
 
 
 if page == "今日待跟进":

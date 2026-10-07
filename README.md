@@ -81,7 +81,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 | POST | `/followups/generate` | build today's ranked follow-up list |
 | GET | `/followups?status=` | ranked follow-up list (`pending`/`done`/`cancelled`/`all`，含 `customer_name`/`lead_stage` 客户身份) |
 | PATCH | `/followups/{id}/done` | mark follow-up done (409 if already done/cancelled，cancelled 留痕不可翻转为 done) |
-| GET | `/analytics/summary` | funnel, conversion, win rate, sources |
+| GET | `/analytics/summary` | funnel, conversion counts + rates (`conversion_rates`，事件流分母), win rate, sources |
 
 ## Design decisions
 
@@ -99,7 +99,7 @@ copy .env.example .env   # set TUTORFLOW_LLM_* values
 ## Testing
 
 ```bash
-.venv\Scripts\python -m pytest -q     # 79 tests
+.venv\Scripts\python -m pytest -q     # 81 tests
 ```
 
 ## Roadmap

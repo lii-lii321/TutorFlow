@@ -26,17 +26,26 @@ async def summary(db: AsyncSession) -> dict:
         if lead.stage in BUDGET_STAGES and lead.budget is not None
     ]
 
-    conversions = {}
-    for prev_stage, next_stage in (
+    conversion_pairs = (
         ("contacted", "qualified"),
         ("qualified", "trial"),
         ("trial", "won"),
         ("contacted", "trial"),
-    ):
-        conversions[f"{prev_stage}_to_{next_stage}"] = len({
+    )
+    reached: dict[str, set[int]] = {}
+    for event in events:
+        reached.setdefault(event.to_stage, set()).add(event.lead_id)
+
+    conversions = {}
+    conversion_rates = {}
+    for prev_stage, next_stage in conversion_pairs:
+        moved = len({
             event.lead_id for event in events
             if event.from_stage == prev_stage and event.to_stage == next_stage
         })
+        conversions[f"{prev_stage}_to_{next_stage}"] = moved
+        pool = reached.get(prev_stage, set())
+        conversion_rates[f"{prev_stage}_to_{next_stage}"] = round(moved / len(pool), 4) if pool else None
 
     sources = {}
     customer_by_id = {customer.id: customer for customer in customers}
@@ -56,5 +65,6 @@ async def summary(db: AsyncSession) -> dict:
         "win_rate": round(len(won_leads) / closed, 4) if closed else None,
         "avg_budget": round(sum(budgeted) / len(budgeted), 2) if budgeted else None,
         "conversions": conversions,
+        "conversion_rates": conversion_rates,
         "sources": sources,
     }
