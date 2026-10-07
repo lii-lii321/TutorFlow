@@ -67,3 +67,25 @@ async def test_transition_reason_capped(client):
     ok = await client.post(f"/leads/{lead_id}/transition", json={"to_stage": "qualified", "reason": TEXT_256})
     assert ok.status_code == 200
     assert ok.json()["stage"] == "qualified"
+
+
+async def test_lead_update_rejects_bad_intent_and_budget(client):
+    lead_id = await create_lead(client)
+
+    assert (await client.patch(f"/leads/{lead_id}", json={"intent": "hot"})).status_code == 422
+    assert (await client.patch(f"/leads/{lead_id}", json={"budget": 0})).status_code == 422
+    assert (await client.patch(f"/leads/{lead_id}", json={"budget": -100})).status_code == 422
+
+    ok = await client.patch(f"/leads/{lead_id}", json={"intent": "high", "budget": 200})
+    assert ok.status_code == 200
+    assert ok.json()["intent"] == "high"
+    assert ok.json()["budget"] == 200
+
+
+async def test_conversation_rejects_bad_direction(client):
+    created = await create_customer(client)
+    resp = await client.post(
+        f"/customers/{created.json()['id']}/conversations",
+        json={"direction": "sideways", "content": "你好"},
+    )
+    assert resp.status_code == 422
